@@ -16,6 +16,7 @@ go.work.sum
 # Secrets / local credentials (live tests load .env)
 .env
 .env.*
+!.env.example
 
 # Editor / OS cruft
 .DS_Store

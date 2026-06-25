@@ -15,6 +15,15 @@ func validHTTPSRecord() *HTTPSRecord {
 	}
 }
 
+func TestHTTPSRecord_Validate_AggregatesAllErrors(t *testing.T) {
+	// svcPriority, targetName, port, scheme, name, ttl all invalid → 6 errors.
+	// (svcParams left empty, which is valid, so it does not contribute.)
+	rec := &HTTPSRecord{SvcPriority: -1, TargetName: "@", Port: "bad", Scheme: "ftp", Name: "", TTL: 10}
+	if errs := rec.Validate(); len(errs) != 6 {
+		t.Fatalf("expected 6 errors, got %d: %v", len(errs), errs)
+	}
+}
+
 func TestHTTPSRecord_Validate_ValidRecord(t *testing.T) {
 	rec := validHTTPSRecord()
 	if errs := rec.Validate(); len(errs) > 0 {

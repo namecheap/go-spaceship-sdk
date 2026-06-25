@@ -70,6 +70,60 @@ jobs:
       - name: Test
         run: make test
 
+  acceptance:
+    name: Acceptance Tests
+    needs: [check, lint, test]
+    runs-on: ubuntu-latest
+    # Live tests hit the real Spaceship API and mutate DNS on SPACESHIP_TEST_DOMAIN.
+    # Skip feature-branch pushes (the PR run covers them); run on PRs, pushes to
+    # main, and manual dispatch. Forks without secrets no-op via the gate below.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    # Serialize live runs so two workflows never mutate the shared test domain
+    # at once. Do not cancel an in-progress run — it may be mid-cleanup.
+    concurrency:
+      group: acceptance-tests
+      cancel-in-progress: false
+    steps:
+      # The API credentials are secrets (unavailable on fork PRs); the test
+      # domain is a plain repository variable so it is visible and easy to
+      # update in the Actions UI. Gate every subsequent step on all three
+      # being present so the job stays green (a no-op) rather than failing
+      # when it cannot authenticate.
+      - name: Check acceptance configuration
+        id: acc_secrets
+        env:
+          SPACESHIP_API_KEY: ${{ secrets.SPACESHIP_API_KEY }}
+          SPACESHIP_API_SECRET: ${{ secrets.SPACESHIP_API_SECRET }}
+          SPACESHIP_TEST_DOMAIN: ${{ vars.SPACESHIP_TEST_DOMAIN }}
+        run: |
+          if [ -n "$SPACESHIP_API_KEY" ] && [ -n "$SPACESHIP_API_SECRET" ] && [ -n "$SPACESHIP_TEST_DOMAIN" ]; then
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_secrets=false; skipping live acceptance tests" >&2
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        if: ${{ steps.acc_secrets.outputs.has_secrets == 'true' }}
+
+      - name: Set up Go
+        if: ${{ steps.acc_secrets.outputs.has_secrets == 'true' }}
+        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Acceptance tests
+        if: ${{ steps.acc_secrets.outputs.has_secrets == 'true' }}
+        env:
+          SPACESHIP_API_KEY: ${{ secrets.SPACESHIP_API_KEY }}
+          SPACESHIP_API_SECRET: ${{ secrets.SPACESHIP_API_SECRET }}
+          SPACESHIP_TEST_DOMAIN: ${{ vars.SPACESHIP_TEST_DOMAIN }}
+        run: make testacc
+
   security:
     name: Security scan (Trivy)
     runs-on: ubuntu-latest

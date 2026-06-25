@@ -15,6 +15,14 @@ func validCAARecord() *CAARecord {
 	}
 }
 
+func TestCAARecord_Validate_AggregatesAllErrors(t *testing.T) {
+	// flag, tag, value, name, ttl all invalid → Validate collects all 5.
+	rec := &CAARecord{Flag: 5, Tag: "bad", Value: "", Name: "", TTL: 10}
+	if errs := rec.Validate(); len(errs) != 5 {
+		t.Fatalf("expected 5 errors, got %d: %v", len(errs), errs)
+	}
+}
+
 func TestCAARecord_Validate_ValidRecord(t *testing.T) {
 	rec := validCAARecord()
 	if errs := rec.Validate(); len(errs) > 0 {

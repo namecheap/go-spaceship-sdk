@@ -44,9 +44,17 @@ make test-cover                          # with a coverage report
 
 ### Running live tests
 
-Live tests hit the real Spaceship API and require credentials. Set `SPACESHIP_API_KEY` and `SPACESHIP_API_SECRET`
-(exported in your shell, or placed in a `.env` file, which `make testacc` loads automatically). Create credentials in
-the Spaceship [API Manager](https://www.spaceship.com/application/api-manager/).
+Live tests hit the real Spaceship API and require credentials. Copy `.env.example` to `.env` and fill it in (or
+export the variables in your shell); `make testacc` loads `.env` automatically. Create credentials in the Spaceship
+[API Manager](https://www.spaceship.com/application/api-manager/).
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `SPACESHIP_API_KEY` | yes | API credential. |
+| `SPACESHIP_API_SECRET` | yes | API credential. |
+| `SPACESHIP_TEST_DOMAIN` | DNS tests only | Domain the DNS tests create and delete records on. Without it those tests skip. Use a throwaway domain. |
+| `SPACESHIP_TEST_RECORD_PREFIX` | no | Namespaces created record names (default `goacc`). |
+| `SPACESHIP_BASE_URL` | no | Override the API base URL (default `https://spaceship.dev/api/v1`). |
 
 ```shell
 make testacc                                            # all live tests
