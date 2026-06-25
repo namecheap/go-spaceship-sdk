@@ -19,6 +19,17 @@ func TestARecord_Validate_ValidRecord(t *testing.T) {
 	}
 }
 
+func TestARecord_Validate_AggregatesAllErrors(t *testing.T) {
+	// Every field is invalid: bad IP, empty name, out-of-range TTL.
+	// Validate must collect all three errors, not stop at the first —
+	// callers rely on seeing every problem in one pass.
+	rec := &ARecord{Address: "notanip", Name: "", TTL: -1}
+	errs := rec.Validate()
+	if len(errs) != 3 {
+		t.Fatalf("expected 3 errors, got %d: %v", len(errs), errs)
+	}
+}
+
 func TestARecord_ValidateAddress(t *testing.T) {
 	tests := []struct {
 		name    string

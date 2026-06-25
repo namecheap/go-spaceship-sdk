@@ -18,6 +18,14 @@ func validSRVRecord() *SRVRecord {
 	}
 }
 
+func TestSRVRecord_Validate_AggregatesAllErrors(t *testing.T) {
+	// All 8 fields invalid → Validate collects all 8 errors.
+	rec := &SRVRecord{Service: "x", Protocol: "y", Priority: -1, Weight: -1, Port: 0, Target: "@", Name: "", TTL: 10}
+	if errs := rec.Validate(); len(errs) != 8 {
+		t.Fatalf("expected 8 errors, got %d: %v", len(errs), errs)
+	}
+}
+
 func TestSRVRecord_Validate_ValidRecord(t *testing.T) {
 	rec := validSRVRecord()
 	if errs := rec.Validate(); len(errs) > 0 {

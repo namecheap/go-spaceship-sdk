@@ -15,6 +15,14 @@ func validSVCBRecord() *SVCBRecord {
 	}
 }
 
+func TestSVCBRecord_Validate_AggregatesAllErrors(t *testing.T) {
+	// svcPriority, targetName, port, scheme, name, ttl all invalid → 6 errors.
+	rec := &SVCBRecord{SvcPriority: -1, TargetName: "*", Port: "bad", Scheme: "nodash", Name: "", TTL: 10}
+	if errs := rec.Validate(); len(errs) != 6 {
+		t.Fatalf("expected 6 errors, got %d: %v", len(errs), errs)
+	}
+}
+
 func TestSVCBRecord_Validate_ValidRecord(t *testing.T) {
 	rec := validSVCBRecord()
 	if errs := rec.Validate(); len(errs) > 0 {

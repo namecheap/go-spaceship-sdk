@@ -21,6 +21,14 @@ func validTLSARecord() *TLSARecord {
 	}
 }
 
+func TestTLSARecord_Validate_AggregatesAllErrors(t *testing.T) {
+	// All 8 fields invalid → Validate collects all 8 errors.
+	rec := &TLSARecord{Port: "bad", Protocol: "y", Usage: -1, Selector: 300, Matching: -1, AssociationData: "zz", Name: "", TTL: 10}
+	if errs := rec.Validate(); len(errs) != 8 {
+		t.Fatalf("expected 8 errors, got %d: %v", len(errs), errs)
+	}
+}
+
 func TestTLSARecord_Validate_ValidRecord(t *testing.T) {
 	rec := validTLSARecord()
 	if errs := rec.Validate(); len(errs) > 0 {

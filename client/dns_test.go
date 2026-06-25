@@ -248,6 +248,70 @@ func TestFilterCustomDNSRecords_Empty(t *testing.T) {
 	}
 }
 
+func TestCreateDNSRecord_SendsSingleItemPayload(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			t.Errorf("expected PUT, got %s", r.Method)
+		}
+		var body struct {
+			Items []DNSRecord `json:"items"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if len(body.Items) != 1 {
+			t.Fatalf("expected 1 item, got %d", len(body.Items))
+		}
+		if body.Items[0].Address != "1.2.3.4" {
+			t.Errorf("expected address 1.2.3.4, got %q", body.Items[0].Address)
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	err := c.CreateDNSRecord(t.Context(), "example.com", DNSRecord{
+		Type: "A", Name: "@", TTL: 3600, Address: "1.2.3.4",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestCreateDNSRecord_Error(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = w.Write([]byte("conflict"))
+	})
+
+	err := c.CreateDNSRecord(t.Context(), "example.com", DNSRecord{
+		Type: "A", Name: "@", TTL: 3600, Address: "1.2.3.4",
+	})
+	if err == nil {
+		t.Fatal("expected error for 422 response")
+	}
+}
+
+func TestDeleteDNSRecord_SendsSingleRecord(t *testing.T) {
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodDelete {
+			t.Errorf("expected DELETE, got %s", r.Method)
+		}
+		var body []DNSRecord
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if len(body) != 1 {
+			t.Fatalf("expected 1 record, got %d", len(body))
+		}
+		if body[0].Name != "www" {
+			t.Errorf("expected name www, got %q", body[0].Name)
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	err := c.DeleteDNSRecord(t.Context(), "example.com", DNSRecord{
+		Type: "A", Name: "www", Address: "1.2.3.4",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestDeleteDNSRecords_OtherErrorReturned(t *testing.T) {
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
