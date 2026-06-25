@@ -58,19 +58,17 @@ go test -run TestAccGetDomainListPagination ./client -v # a single live test
 
 ## Commit conventions
 
-This project uses [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `docs`, `chore`,
-`refactor`, `test`, `ci`, `perf`, `build`, `revert`). Keep commit bodies short — a line or two stating the why.
+- **Format** — use [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `docs`, `chore`,
+  `refactor`, `test`, `ci`, `perf`, `build`, `revert`). Keep commit bodies short — a line or two stating the why.
+- **Sign-off** — this project requires a [Developer Certificate of Origin](https://developercertificate.org/) sign-off
+  on every commit. Add a `Signed-off-by:` trailer with `git commit -s` (or by hand):
 
-## DCO sign-off
+  ```
+  Signed-off-by: Your Name <your-email@example.com>
+  ```
 
-This project requires a [Developer Certificate of Origin](https://developercertificate.org/) sign-off on every commit.
-Add the following trailer to each commit message (use `git commit -s` or add it manually):
-
-```
-Signed-off-by: Your Name <your-email@example.com>
-```
-
-Pull requests with commits missing the sign-off will fail the DCO check in CI.
+  Pull requests with commits missing the sign-off will fail the DCO check in CI.
+- **No other trailers** — do not add `Co-Authored-By` lines.
 
 ## Release
 
