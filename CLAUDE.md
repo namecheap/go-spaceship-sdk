@@ -64,3 +64,4 @@ Live tests own API edge cases: unusual values, update/delete+upsert paths, case-
 
 - Do not add `Co-Authored-By` lines.
 - Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`, `perf`, `build`, `revert`). Keep commit bodies short — a line or two stating the why.
+- Sign off every commit with a [DCO](https://developercertificate.org/) `Signed-off-by:` trailer (`git commit -s`). CI enforces this via `.github/dco.yml`.

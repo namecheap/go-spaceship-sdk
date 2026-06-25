@@ -13,7 +13,14 @@ coverage.*
 go.work
 go.work.sum
 
+# Secrets / local credentials (live tests load .env)
+.env
+.env.*
+
 # Editor / OS cruft
 .DS_Store
 .idea/
 .vscode/
+
+# Claude Code local overrides
+.claude/settings.local.json
