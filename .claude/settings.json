@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make *)",
+      "Bash(go test:*)",
+      "Bash(go vet:*)",
+      "Bash(go build:*)",
+      "Bash(golangci-lint:*)"
+    ],
+    "deny": [
+      "Edit(.env)",
+      "Edit(.env.*)",
+      "Edit(.vault-token)",
+      "Edit(credentials.*)",
+      "Edit(*.pem)",
+      "Edit(*.key)",
+      "Edit(*.p12)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Write(.vault-token)",
+      "Write(credentials.*)",
+      "Write(*.pem)",
+      "Write(*.key)",
+      "Write(*.p12)"
+    ]
+  },
+  "plugins": [
+    "gopls-lsp@claude-plugins-official"
+  ],
+  "enabledPlugins": {
+    "gopls-lsp@claude-plugins-official": true
+  }
+}
