@@ -52,6 +52,31 @@ Authentication uses the `X-API-Key` / `X-API-Secret` headers; credentials are cr
 See the [Go Reference](https://pkg.go.dev/github.com/namecheap/go-spaceship-sdk) for the full method list and
 signatures.
 
+## Testing
+
+Unit tests run with no credentials and are what CI executes:
+
+```sh
+make test
+```
+
+The SDK also ships **live acceptance tests** (`TestAcc*`) that exercise the real Spaceship API. They are skipped
+unless credentials are set, and the DNS tests **create and delete records on a real domain**. Copy `.env.example`
+to `.env` and fill it in — `make testacc` loads `.env` automatically:
+
+```sh
+cp .env.example .env   # then set SPACESHIP_API_KEY, SPACESHIP_API_SECRET, SPACESHIP_TEST_DOMAIN
+make testacc
+```
+
+Exporting the same variables in your shell works too. `SPACESHIP_TEST_DOMAIN` is required only for the DNS tests;
+without it they skip rather than fail.
+
+> ⚠️ Acceptance tests mutate real DNS records on `SPACESHIP_TEST_DOMAIN`. Point them at a throwaway domain you
+> control, never a production domain.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full test strategy.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow, test layers, commit conventions, and DCO sign-off.
