@@ -34,6 +34,10 @@ A standalone Go client for protocol-level access to the Spaceship API. No Terraf
 
 `NewClient(baseURL, apiKey, apiSecret)` takes credentials explicitly — the library does **not** read environment variables (only the live tests do). The production base URL is `https://spaceship.dev/api/v1`; auth is via `X-API-Key` / `X-API-Secret` headers.
 
+### Package layout: no `internal/` by design
+
+Both `client/` and `client/records/` are intentionally public (importable). This is an SDK — its whole surface is meant to be imported by consumers — so do **not** move packages under `internal/`. Go's compiler restricts `internal/` packages to importers within this module's subtree, which would make the SDK un-importable by its users. In particular, `client/records` stays public because, beyond its internal use in `client/`, consumers can use its record structs and `Validate*` methods to pre-validate records before sending. There is no module-root package by design; consumers import `.../go-spaceship-sdk/client`. Only introduce `internal/` for genuinely consumer-hidden code (e.g. a future `cmd/` tool's shared helpers).
+
 ## Testing strategy
 
 Two layers — do not duplicate coverage between them.
