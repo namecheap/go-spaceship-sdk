@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.0](https://github.com/namecheap/go-spaceship-sdk/compare/v0.1.0...v0.1.0) (2026-06-30)
+
+
+### Documentation
+
+* add API coverage matrix to README ([#8](https://github.com/namecheap/go-spaceship-sdk/issues/8)) ([012380c](https://github.com/namecheap/go-spaceship-sdk/commit/012380c3d2d82d6f2bc450577acb23140223c11b))
+
 ## 0.1.0 (2026-06-26)
 
 
