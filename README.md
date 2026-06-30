@@ -49,7 +49,8 @@ validation for A, AAAA, ALIAS, CAA, CNAME, HTTPS, MX, NS, PTR, SRV, SVCB, TLSA, 
 
 The table below maps every published Spaceship API endpoint to its status and the backing SDK method(s). Verified
 against the Spaceship API as of 2026-06-30 (SDK v0.1.0). See the
-[Go Reference](https://pkg.go.dev/github.com/namecheap/go-spaceship-sdk) for full signatures.
+[`client` package reference](https://pkg.go.dev/github.com/namecheap/go-spaceship-sdk/client) for full method
+signatures and godoc.
 
 Legend: ✅ implemented · 🚧 not yet implemented · ⛔ not available in API (endpoint returns HTTP 501).
 
