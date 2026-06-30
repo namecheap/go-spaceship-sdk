@@ -41,16 +41,95 @@ Authentication uses the `X-API-Key` / `X-API-Secret` headers; credentials are cr
 [API Manager](https://www.spaceship.com/application/api-manager/). The library takes credentials explicitly — it does
 **not** read environment variables.
 
-## What it covers
+## API coverage
 
-- **Domains** — list, get info, auto-renew, nameservers.
-- **DNS records** — list, find, create, upsert, and delete records in the `custom` group (records owned by Spaceship
-  products are read-only and left untouched). Per-type validation for A, AAAA, ALIAS, CAA, CNAME, HTTPS, MX, NS, PTR,
-  SRV, SVCB, TLSA, and TXT.
-- **Personal nameservers** — list, find, upsert, delete.
+The SDK implements Domains, DNS records, and Personal Nameservers. DNS records are managed in the `custom` group only
+(records owned by Spaceship products are read-only and left untouched); the create/upsert/delete methods do per-type
+validation for A, AAAA, ALIAS, CAA, CNAME, HTTPS, MX, NS, PTR, SRV, SVCB, TLSA, and TXT.
 
-See the [Go Reference](https://pkg.go.dev/github.com/namecheap/go-spaceship-sdk) for the full method list and
-signatures.
+The table below maps every published Spaceship API endpoint to its status and the backing SDK method(s). Verified
+against the Spaceship API as of 2026-06-30 (SDK v0.1.0). See the
+[`client` package reference](https://pkg.go.dev/github.com/namecheap/go-spaceship-sdk/client) for full method
+signatures and godoc.
+
+Legend: ✅ implemented · 🚧 not yet implemented · ⛔ not available in API (endpoint returns HTTP 501).
+
+**Domains**
+
+| Endpoint | Status | SDK method(s) |
+|---|---|---|
+| `GET /domains` | ✅ | `GetDomainList` |
+| `GET /domains/{domain}` | ✅ | `GetDomainInfo` (falls back to the list endpoint on HTTP 429) |
+| `POST /domains/{domain}` (register) | 🚧 | — |
+| `POST /domains/{domain}/renew` | 🚧 | — |
+| `POST /domains/{domain}/restore` | 🚧 | — |
+| `DELETE /domains/{domain}` | ⛔ | — |
+| `PUT /domains/{domain}/autorenew` | ✅ | `UpdateAutoRenew` |
+| `PUT /domains/{domain}/nameservers` | ✅ | `UpdateDomainNameServers` |
+| `PUT /domains/{domain}/contacts` | 🚧 | — |
+| `PUT /domains/{domain}/privacy/preference` | 🚧 | — |
+| `PUT /domains/{domain}/privacy/email-protection-preference` | 🚧 | — |
+
+**Domain availability**
+
+| Endpoint | Status | SDK method(s) |
+|---|---|---|
+| `POST /domains/available` (batch) | 🚧 | — |
+| `GET /domains/{domain}/available` | 🚧 | — |
+
+**Domain transfer**
+
+| Endpoint | Status | SDK method(s) |
+|---|---|---|
+| `POST /domains/{domain}/transfer` | 🚧 | — |
+| `GET /domains/{domain}/transfer` | 🚧 | — |
+| `GET /domains/{domain}/transfer/auth-code` | 🚧 | — |
+| `PUT /domains/{domain}/transfer/lock` | 🚧 | — |
+
+**Personal nameservers**
+
+| Endpoint | Status | SDK method(s) |
+|---|---|---|
+| `GET /domains/{domain}/personal-nameservers` | ✅ | `ListPersonalNameservers`, `FindPersonalNameserver` |
+| `PUT /domains/{domain}/personal-nameservers/{currentHost}` | ✅ | `UpsertPersonalNameserver` |
+| `DELETE /domains/{domain}/personal-nameservers/{currentHost}` | ✅ | `DeletePersonalNameserver` |
+| `GET /domains/{domain}/personal-nameservers/{currentHost}` | ⛔ | — |
+
+**DNS records**
+
+| Endpoint | Status | SDK method(s) |
+|---|---|---|
+| `GET /dns/records/{domain}` | ✅ | `GetDNSRecords`, `FindDNSRecord` |
+| `PUT /dns/records/{domain}` | ✅ | `UpsertDNSRecords`, `CreateDNSRecord` |
+| `DELETE /dns/records/{domain}` | ✅ | `DeleteDNSRecord`, `DeleteDNSRecords`, `ClearDNSRecords` |
+
+**Contacts**
+
+| Endpoint | Status | SDK method(s) |
+|---|---|---|
+| `PUT /contacts` | 🚧 | — |
+| `GET /contacts/{contact}` | 🚧 | — |
+| `PUT /contacts/attributes` | 🚧 | — |
+| `GET /contacts/attributes/{contact}` | 🚧 | — |
+
+**Async operations**
+
+| Endpoint | Status | SDK method(s) |
+|---|---|---|
+| `GET /async-operations/{operationId}` | 🚧 | — |
+
+**SellerHub**
+
+| Endpoint | Status | SDK method(s) |
+|---|---|---|
+| `GET /sellerhub/domains` | 🚧 | — |
+| `POST /sellerhub/domains` | 🚧 | — |
+| `GET /sellerhub/domains/{domain}` | 🚧 | — |
+| `PATCH /sellerhub/domains/{domain}` | 🚧 | — |
+| `DELETE /sellerhub/domains/{domain}` | 🚧 | — |
+| `GET /sellerhub/domains/reports/sold` | 🚧 | — |
+| `GET /sellerhub/domains/verification-records` | 🚧 | — |
+| `POST /sellerhub/checkout-links` | 🚧 | — |
 
 ## Testing
 
