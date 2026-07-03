@@ -194,6 +194,111 @@ func TestAccDNSRecord_SVCBPortWithoutSchemeRejected(t *testing.T) {
 	t.Logf("API rejected port-without-scheme as expected: %v", err)
 }
 
+// TestAccDNSRecord_NonApexAliasRoundTrip is the control for the apex quirk
+// below: a non-apex ALIAS (Name other than "@") is stored and read back AS AN
+// ALIAS, unchanged. This proves the CNAME mutation in the apex test is specific
+// to the zone root, not something the API does to every ALIAS record.
+func TestAccDNSRecord_NonApexAliasRoundTrip(t *testing.T) {
+	c := testAccClient(t)
+	domain := testAccDomain(t)
+	ctx := t.Context()
+
+	rec := DNSRecord{
+		Type:      "ALIAS",
+		Name:      testAccRecordName("alias", "roundtrip"),
+		TTL:       3600,
+		AliasName: "other.example.com",
+	}
+	testAccCleanupRecords(t, c, domain, rec)
+
+	if err := c.CreateDNSRecord(ctx, domain, rec); err != nil {
+		t.Fatalf("create ALIAS: %v", err)
+	}
+
+	got, err := c.FindDNSRecord(ctx, domain, rec.Type, rec.Name, RecordValueSignature(rec))
+	if err != nil {
+		t.Fatalf("find after create: %v", err)
+	}
+	if !strings.EqualFold(got.Type, "ALIAS") {
+		t.Errorf("type: got %q, want ALIAS (a non-apex ALIAS must stay an ALIAS)", got.Type)
+	}
+	if !strings.EqualFold(got.AliasName, rec.AliasName) {
+		t.Errorf("aliasName: got %q want %q", got.AliasName, rec.AliasName)
+	}
+
+	if err := c.DeleteDNSRecord(ctx, domain, rec); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+}
+
+// TestAccDNSRecord_ApexAliasBecomesCNAME pins a verified API quirk: an ALIAS
+// created at the zone apex (Name "@") is silently stored as a root CNAME, not
+// an ALIAS — apex ALIAS is implemented as a domain-root CNAME. Confirmed
+// against the live API and by internal Spaceship documentation.
+//
+// Why this test exists: the terraform-provider-spaceship provider REJECTS apex
+// ALIAS at plan time precisely because of this mutation. Terraform matches
+// records by type+name+data, so a config record ALIAS|@|target never matches
+// the CNAME|@|target the API returns, and the provider would recreate it on
+// every apply (non-convergence). The SDK itself does NOT reject apex ALIAS —
+// the API accepts it, so mirroring the API means accepting it here. This test
+// is the SDK-level proof of the behavior and a tripwire: if the API ever keeps
+// it as an ALIAS, or starts returning a 422, this test fails and signals that
+// the provider's guard should be revisited.
+func TestAccDNSRecord_ApexAliasBecomesCNAME(t *testing.T) {
+	c := testAccClient(t)
+	domain := testAccDomain(t)
+	ctx := t.Context()
+
+	const target = "apex-alias-probe.example.com"
+	alias := DNSRecord{Type: "ALIAS", Name: "@", TTL: 3600, AliasName: target}
+	// The record that actually persists is the CNAME form, so that is what
+	// cleanup normally deletes. We also register the ALIAS form: if this
+	// test's premise ever breaks (the API keeps it as an ALIAS — the exact
+	// regression this tripwire guards), the CNAME delete would miss and leak
+	// the record. Registering both keeps the throwaway domain clean either way;
+	// DeleteDNSRecords swallows 404s, so the form that does not exist is a no-op.
+	stored := DNSRecord{Type: "CNAME", Name: "@", TTL: 3600, CName: target}
+	testAccCleanupRecords(t, c, domain, stored, alias)
+
+	if err := c.CreateDNSRecord(ctx, domain, alias); err != nil {
+		t.Fatalf("create apex ALIAS: %v", err)
+	}
+
+	records, err := c.GetDNSRecords(ctx, domain)
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+
+	// Look the record up by name + target, deliberately NOT by type — the type
+	// is exactly what this test measures, so keying the lookup on it would hide
+	// the result (a search for type "ALIAS" would simply return "not found").
+	var apex *DNSRecord
+	for i := range records {
+		if strings.EqualFold(records[i].Name, "@") && strings.EqualFold(records[i].CName, target) {
+			apex = &records[i]
+			break
+		}
+	}
+	if apex == nil {
+		t.Fatalf("apex record with target %q not found after creating an ALIAS; got %+v", target, records)
+	}
+
+	// The marquee assertion: we sent type ALIAS, the API stored type CNAME.
+	if !strings.EqualFold(apex.Type, "CNAME") {
+		t.Errorf("apex ALIAS stored type: got %q, want CNAME (API mutates apex ALIAS -> root CNAME)", apex.Type)
+	}
+	// The value sent as aliasName resurfaces in the cname field...
+	if !strings.EqualFold(apex.CName, target) {
+		t.Errorf("cname: got %q want %q (aliasName should resurface as cname)", apex.CName, target)
+	}
+	// ...and the ALIAS field is gone — it is a full type conversion, not a
+	// dual-typed record.
+	if apex.AliasName != "" {
+		t.Errorf("aliasName: got %q, want empty (record is no longer an ALIAS)", apex.AliasName)
+	}
+}
+
 // TestAccGetDomainInfo verifies the read path for a single domain returns the
 // queried domain. GetDomainInfo falls back to the list endpoint on HTTP 429;
 // this exercises the primary path and the response shape.
