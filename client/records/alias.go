@@ -8,6 +8,15 @@ import "fmt"
 // The aliasName field must be a valid domain name (1-253 chars, hostNameValue
 // pattern). Unlike the record name field, "@" and "*" are not accepted —
 // the API requires aliasName to be a real domain name.
+//
+// Verified API quirk (name field): the API accepts an apex ALIAS (Name "@")
+// but silently stores it as a root CNAME, not an ALIAS — apex ALIAS is
+// implemented as a domain-root CNAME. Reads therefore return a CNAME, so an
+// apex ALIAS never round-trips as type ALIAS. This is not enforced here (the
+// API accepts it, so ValidateName does not reject "@"); consumers that
+// reconcile state — e.g. the Terraform provider — must reject apex ALIAS or
+// reconcile the returned CNAME, since matching by type+name+data would
+// otherwise never converge.
 type ALIASRecord struct {
 	AliasName string
 	Name      string
