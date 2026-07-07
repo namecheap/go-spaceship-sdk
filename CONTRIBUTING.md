@@ -68,6 +68,11 @@ go test -run TestAccGetDomainListPagination ./client -v # a single live test
 
 - **Format** — use [Conventional Commits](https://www.conventionalcommits.org/) (`feat`, `fix`, `docs`, `chore`,
   `refactor`, `test`, `ci`, `perf`, `build`, `revert`). Keep commit bodies short — a line or two stating the why.
+- **Dependency bumps must use a releasing type** — release-please only bumps the version on `fix:` / `feat:` /
+  breaking. A `go.mod` bump ships in the next tagged SDK release (consumers `go get` a tag), so commit it as
+  `fix(deps):`, **not** `chore(deps):` (which never releases, leaving the update unpublished until an unrelated
+  `fix:`/`feat:` sweeps it in). CI/action-only bumps stay non-releasing (`ci(deps):`). Dependabot applies these
+  prefixes automatically via `commit-message.prefix` in `.github/dependabot.yml`.
 - **Sign-off** — this project requires a [Developer Certificate of Origin](https://developercertificate.org/) sign-off
   on every commit. Add a `Signed-off-by:` trailer with `git commit -s` (or by hand):
 
