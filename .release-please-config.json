@@ -11,8 +11,6 @@
     { "type": "deps", "section": "Dependencies" }
   ],
   "packages": {
-    ".": {
-      "release-as": "0.1.0"
-    }
+    ".": {}
   }
 }
