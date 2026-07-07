@@ -67,3 +67,10 @@ Live tests own API edge cases: unusual values, update/delete+upsert paths, case-
 ## Git
 
 Follow the commit conventions in [CONTRIBUTING.md](CONTRIBUTING.md#commit-conventions): Conventional Commits, a DCO `Signed-off-by:` trailer on every commit (`git commit -s`), and no `Co-Authored-By` lines.
+
+### Releases (release-please)
+
+Releases are automated by release-please (`.github/workflows/versioning.yml`, `.release-please-config.json`). Two gotchas:
+
+- **Only some commit types trigger a release / changelog entry**: `feat` (minor), `fix`/`docs`/`deps` (patch), per `changelog-sections`. `test`, `chore`, `ci`, `refactor` produce **no** release. So a docs-visible change (e.g. a comment on an exported type) should be committed as `docs:`, not folded into a `test:` commit, or it won't reach the changelog or bump the version.
+- **`release-as` pins the version**: if `.release-please-config.json` has `packages["."].release-as`, every release PR is forced to that exact version (it ignores commit history — the release PR shows `vX...vX` and never bumps). It's only for bootstrapping the first release; remove it afterward so versions auto-compute from commit types.
