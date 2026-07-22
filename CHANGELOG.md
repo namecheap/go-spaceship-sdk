@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/namecheap/go-spaceship-sdk/compare/v0.1.0...v0.2.0) (2026-07-22)
+
+
+### Features
+
+* **client:** expose Retry-After on rate-limit errors ([#26](https://github.com/namecheap/go-spaceship-sdk/issues/26)) ([5624463](https://github.com/namecheap/go-spaceship-sdk/commit/56244639bc066306ccefd37efc93663932c86e15))
+
+
+### Documentation
+
+* add API coverage matrix to README ([#8](https://github.com/namecheap/go-spaceship-sdk/issues/8)) ([012380c](https://github.com/namecheap/go-spaceship-sdk/commit/012380c3d2d82d6f2bc450577acb23140223c11b))
+
 ## [0.1.0](https://github.com/namecheap/go-spaceship-sdk/compare/v0.1.0...v0.1.0) (2026-07-02)
 
 
