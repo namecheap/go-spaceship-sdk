@@ -57,7 +57,9 @@ type RecordGroup struct {
 }
 
 const (
-	maxListPageSize     = 500
+	maxListPageSize = 500
+	// maxWriteBatchSize is the API's cap on items per PUT/DELETE request body.
+	maxWriteBatchSize   = 500
 	defaultRecordsOrder = "type"
 
 	// DNSGroupCustom is the group type for records managed via the external API.
@@ -156,24 +158,26 @@ func filterCustomDNSRecords(records []DNSRecord) []DNSRecord {
 	return filtered
 }
 
-// UpsertDNSRecords creates or updated DNS records for the supplied domain
+// UpsertDNSRecords creates or updates DNS records for the supplied domain.
+//
+// The API accepts at most 500 items per request, so larger slices are sent in
+// batches of 500. Batches are not atomic as a whole: if a batch fails, records
+// from earlier batches remain applied and the error is returned immediately.
 func (c *Client) UpsertDNSRecords(ctx context.Context, domain string, force bool, records []DNSRecord) error {
-	if len(records) == 0 {
-		return nil
-	}
-
 	endpoint := c.endpointURL([]string{"dns", "records", domain}, nil)
 
-	payload := struct {
-		Force bool        `json:"force"`
-		Items []DNSRecord `json:"items"`
-	}{
-		Force: force,
-		Items: records,
-	}
+	for start := 0; start < len(records); start += maxWriteBatchSize {
+		payload := struct {
+			Force bool        `json:"force"`
+			Items []DNSRecord `json:"items"`
+		}{
+			Force: force,
+			Items: records[start:min(start+maxWriteBatchSize, len(records))],
+		}
 
-	if _, err := c.doJSON(ctx, http.MethodPut, endpoint, payload, nil); err != nil {
-		return err
+		if _, err := c.doJSON(ctx, http.MethodPut, endpoint, payload, nil); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -207,18 +211,23 @@ func (c *Client) DeleteDNSRecord(ctx context.Context, domain string, record DNSR
 }
 
 // DeleteDNSRecords removes the specified DNS records.
+//
+// The API accepts at most 500 items per request, so larger slices are sent in
+// batches of 500. Batches are not atomic as a whole: if a batch fails, records
+// from earlier batches remain deleted and the error is returned immediately.
+// A 404 on any batch is ignored, matching the single-request behavior.
 func (c *Client) DeleteDNSRecords(ctx context.Context, domain string, records []DNSRecord) error {
-	if len(records) == 0 {
-		return nil
-	}
-
 	endpoint := c.endpointURL([]string{"dns", "records", domain}, nil)
 
-	if _, err := c.doJSON(ctx, http.MethodDelete, endpoint, records, nil); err != nil {
-		if IsNotFoundError(err) {
-			return nil
+	for start := 0; start < len(records); start += maxWriteBatchSize {
+		batch := records[start:min(start+maxWriteBatchSize, len(records))]
+
+		if _, err := c.doJSON(ctx, http.MethodDelete, endpoint, batch, nil); err != nil {
+			if IsNotFoundError(err) {
+				continue
+			}
+			return err
 		}
-		return err
 	}
 	return nil
 }

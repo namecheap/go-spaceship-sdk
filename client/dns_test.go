@@ -2,7 +2,9 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"slices"
 	"testing"
 )
 
@@ -323,5 +325,117 @@ func TestDeleteDNSRecords_OtherErrorReturned(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected error for 500 response")
+	}
+}
+
+// Verifies upserts above the API's 500-item cap are split into multiple PUTs.
+func TestUpsertDNSRecords_BatchesLargeWrites(t *testing.T) {
+	var batchSizes []int
+	var names []string
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		var body struct {
+			Force bool        `json:"force"`
+			Items []DNSRecord `json:"items"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		if !body.Force {
+			t.Error("expected force=true on every batch")
+		}
+		batchSizes = append(batchSizes, len(body.Items))
+		for _, item := range body.Items {
+			names = append(names, item.Name)
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	records := make([]DNSRecord, 1001)
+	for i := range records {
+		records[i] = DNSRecord{Type: "A", Name: fmt.Sprintf("host-%d", i), Address: "1.2.3.4"}
+	}
+
+	err := c.UpsertDNSRecords(t.Context(), "example.com", true, records)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if want := []int{500, 500, 1}; !slices.Equal(batchSizes, want) {
+		t.Fatalf("expected batch sizes %v, got %v", want, batchSizes)
+	}
+	for i, name := range names {
+		if want := fmt.Sprintf("host-%d", i); name != want {
+			t.Fatalf("expected record %d to be %q, got %q (order not preserved)", i, want, name)
+		}
+	}
+}
+
+// Verifies exactly 500 records still go out as a single request.
+func TestUpsertDNSRecords_ExactBatchSizeSingleRequest(t *testing.T) {
+	requests := 0
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		w.WriteHeader(http.StatusOK)
+	})
+
+	records := make([]DNSRecord, 500)
+	for i := range records {
+		records[i] = DNSRecord{Type: "A", Name: fmt.Sprintf("host-%d", i), Address: "1.2.3.4"}
+	}
+
+	err := c.UpsertDNSRecords(t.Context(), "example.com", false, records)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if requests != 1 {
+		t.Fatalf("expected 1 request for 500 records, got %d", requests)
+	}
+}
+
+// Verifies a failing batch surfaces its error instead of being swallowed.
+func TestUpsertDNSRecords_BatchErrorReturned(t *testing.T) {
+	requests := 0
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if requests == 2 {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_, _ = w.Write([]byte(`{"detail":"boom"}`))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	records := make([]DNSRecord, 501)
+	for i := range records {
+		records[i] = DNSRecord{Type: "A", Name: fmt.Sprintf("host-%d", i), Address: "1.2.3.4"}
+	}
+
+	err := c.UpsertDNSRecords(t.Context(), "example.com", false, records)
+	if err == nil {
+		t.Fatal("expected error from failing second batch")
+	}
+	if requests != 2 {
+		t.Fatalf("expected to stop after failing batch, got %d requests", requests)
+	}
+}
+
+// Verifies deletes above the API's 500-item cap are split into multiple DELETEs.
+func TestDeleteDNSRecords_BatchesLargeDeletes(t *testing.T) {
+	var batchSizes []int
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		var body []DNSRecord
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		batchSizes = append(batchSizes, len(body))
+		w.WriteHeader(http.StatusOK)
+	})
+
+	records := make([]DNSRecord, 1001)
+	for i := range records {
+		records[i] = DNSRecord{Type: "A", Name: fmt.Sprintf("host-%d", i), Address: "1.2.3.4"}
+	}
+
+	err := c.DeleteDNSRecords(t.Context(), "example.com", records)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if want := []int{500, 500, 1}; !slices.Equal(batchSizes, want) {
+		t.Fatalf("expected batch sizes %v, got %v", want, batchSizes)
 	}
 }
