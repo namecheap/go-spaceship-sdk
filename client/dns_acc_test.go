@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -296,6 +297,59 @@ func TestAccDNSRecord_ApexAliasBecomesCNAME(t *testing.T) {
 	// dual-typed record.
 	if apex.AliasName != "" {
 		t.Errorf("aliasName: got %q, want empty (record is no longer an ALIAS)", apex.AliasName)
+	}
+}
+
+// TestAccDNSRecords_BatchedWriteRoundTrip exercises the multi-batch write path
+// against the real API without a large-record footprint: with the batch size
+// shrunk to 2, five records upsert as three PUTs and delete as three DELETEs.
+// This proves the API treats batched PUTs as cumulative upserts (not full
+// replaces — records from earlier batches survive later ones) and that a
+// re-delete of absent records stays a no-op per batch. The 500-item cap itself
+// is the API's contract, verified once manually; it is not re-proven here.
+func TestAccDNSRecords_BatchedWriteRoundTrip(t *testing.T) {
+	c := testAccClient(t)
+	domain := testAccDomain(t)
+	ctx := t.Context()
+
+	// Restore runs after testAccCleanupRecords' cleanup (LIFO), so the
+	// records are deleted while the small batch size is still in effect.
+	old := maxWriteBatchSize
+	maxWriteBatchSize = 2
+	t.Cleanup(func() { maxWriteBatchSize = old })
+
+	records := make([]DNSRecord, 5)
+	for i := range records {
+		records[i] = DNSRecord{
+			Type:    "A",
+			Name:    testAccRecordName("batch", fmt.Sprintf("%d", i)),
+			TTL:     3600,
+			Address: "203.0.113.20",
+		}
+	}
+	testAccCleanupRecords(t, c, domain, records...)
+
+	if err := c.UpsertDNSRecords(ctx, domain, true, records); err != nil {
+		t.Fatalf("batched upsert: %v", err)
+	}
+	for _, rec := range records {
+		if _, err := c.FindDNSRecord(ctx, domain, rec.Type, rec.Name, RecordValueSignature(rec)); err != nil {
+			t.Errorf("find %q after batched upsert: %v", rec.Name, err)
+		}
+	}
+
+	if err := c.DeleteDNSRecords(ctx, domain, records); err != nil {
+		t.Fatalf("batched delete: %v", err)
+	}
+	for _, rec := range records {
+		if _, err := c.FindDNSRecord(ctx, domain, rec.Type, rec.Name, RecordValueSignature(rec)); err != ErrRecordNotFound {
+			t.Errorf("after batched delete: expected ErrRecordNotFound for %q, got %v", rec.Name, err)
+		}
+	}
+
+	// Deleting the same records again exercises 404 tolerance across batches.
+	if err := c.DeleteDNSRecords(ctx, domain, records); err != nil {
+		t.Errorf("re-delete of absent records: %v", err)
 	}
 }
 

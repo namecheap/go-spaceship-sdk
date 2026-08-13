@@ -56,10 +56,14 @@ type RecordGroup struct {
 	Type string `json:"type"`
 }
 
+// maxWriteBatchSize is the API's cap on items per PUT/DELETE request body.
+// It is a var (not a const) only so acceptance tests can shrink it and
+// exercise the multi-batch write path against the live API without creating
+// hundreds of records; nothing outside tests may reassign it.
+var maxWriteBatchSize = 500
+
 const (
-	maxListPageSize = 500
-	// maxWriteBatchSize is the API's cap on items per PUT/DELETE request body.
-	maxWriteBatchSize   = 500
+	maxListPageSize     = 500
 	defaultRecordsOrder = "type"
 
 	// DNSGroupCustom is the group type for records managed via the external API.

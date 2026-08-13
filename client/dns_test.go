@@ -337,7 +337,9 @@ func TestUpsertDNSRecords_BatchesLargeWrites(t *testing.T) {
 			Force bool        `json:"force"`
 			Items []DNSRecord `json:"items"`
 		}
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode request body: %v", err)
+		}
 		if !body.Force {
 			t.Error("expected force=true on every batch")
 		}
@@ -419,10 +421,16 @@ func TestUpsertDNSRecords_BatchErrorReturned(t *testing.T) {
 // Verifies deletes above the API's 500-item cap are split into multiple DELETEs.
 func TestDeleteDNSRecords_BatchesLargeDeletes(t *testing.T) {
 	var batchSizes []int
+	var names []string
 	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
 		var body []DNSRecord
-		_ = json.NewDecoder(r.Body).Decode(&body)
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode request body: %v", err)
+		}
 		batchSizes = append(batchSizes, len(body))
+		for _, item := range body {
+			names = append(names, item.Name)
+		}
 		w.WriteHeader(http.StatusOK)
 	})
 
@@ -437,5 +445,65 @@ func TestDeleteDNSRecords_BatchesLargeDeletes(t *testing.T) {
 	}
 	if want := []int{500, 500, 1}; !slices.Equal(batchSizes, want) {
 		t.Fatalf("expected batch sizes %v, got %v", want, batchSizes)
+	}
+	for i, name := range names {
+		if want := fmt.Sprintf("host-%d", i); name != want {
+			t.Fatalf("expected record %d to be %q, got %q (order not preserved)", i, want, name)
+		}
+	}
+}
+
+// Verifies a 404 on one delete batch is skipped and the remaining batches are
+// still sent, extending the single-request 404-is-fine semantics per batch.
+func TestDeleteDNSRecords_NotFoundBatchContinues(t *testing.T) {
+	requests := 0
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if requests == 2 {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte("not found"))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	records := make([]DNSRecord, 1001)
+	for i := range records {
+		records[i] = DNSRecord{Type: "A", Name: fmt.Sprintf("host-%d", i), Address: "1.2.3.4"}
+	}
+
+	err := c.DeleteDNSRecords(t.Context(), "example.com", records)
+	if err != nil {
+		t.Fatalf("expected 404 on a batch to be ignored, got: %v", err)
+	}
+	if requests != 3 {
+		t.Fatalf("expected all 3 batches sent despite mid-batch 404, got %d requests", requests)
+	}
+}
+
+// Verifies a non-404 error on a delete batch stops immediately and surfaces.
+func TestDeleteDNSRecords_BatchErrorReturned(t *testing.T) {
+	requests := 0
+	c, _ := testServer(t, func(w http.ResponseWriter, r *http.Request) {
+		requests++
+		if requests == 2 {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("server error"))
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	records := make([]DNSRecord, 1001)
+	for i := range records {
+		records[i] = DNSRecord{Type: "A", Name: fmt.Sprintf("host-%d", i), Address: "1.2.3.4"}
+	}
+
+	err := c.DeleteDNSRecords(t.Context(), "example.com", records)
+	if err == nil {
+		t.Fatal("expected error from failing second batch")
+	}
+	if requests != 2 {
+		t.Fatalf("expected to stop after failing batch, got %d requests", requests)
 	}
 }
