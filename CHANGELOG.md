@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/namecheap/go-spaceship-sdk/compare/v0.2.0...v0.2.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **client:** batch DNS record writes to the API's 500-item limit ([#37](https://github.com/namecheap/go-spaceship-sdk/issues/37)) ([30d13bd](https://github.com/namecheap/go-spaceship-sdk/commit/30d13bddae6eb51e6ad42c490514744f668cb2f4))
+
 ## [0.2.0](https://github.com/namecheap/go-spaceship-sdk/compare/v0.1.0...v0.2.0) (2026-07-22)
 
 
