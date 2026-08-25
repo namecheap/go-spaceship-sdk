@@ -26,7 +26,7 @@ jobs:
           cache: true
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@be7a3dbb8147b82cd6d27e0707105b36aa190fc1 # main
+        uses: github/codeql-action/init@9ee088e13615f8d1eaef4766f9dde95d3356a8f6 # main
         with:
           languages: go
           build-mode: autobuild
