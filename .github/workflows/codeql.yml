@@ -32,6 +32,6 @@ jobs:
           build-mode: autobuild
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@e855781840494f215c54473a03cc9e82e2a400fc # main
+        uses: github/codeql-action/analyze@cf9bbfe9a13d9f9ac9b73934d67337fe2b432754 # main
         with:
           category: /language:go
