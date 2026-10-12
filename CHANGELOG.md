@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/namecheap/go-spaceship-sdk/compare/v0.2.1...v0.2.2) (2026-10-12)
+
+
+### Bug Fixes
+
+* **deps:** bump Go toolchain to 1.26.9 ([#55](https://github.com/namecheap/go-spaceship-sdk/issues/55)) ([edbd005](https://github.com/namecheap/go-spaceship-sdk/commit/edbd005de522b666801ae73140084b66165b1c29))
+
 ## [0.2.1](https://github.com/namecheap/go-spaceship-sdk/compare/v0.2.0...v0.2.1) (2026-08-13)
 
 
