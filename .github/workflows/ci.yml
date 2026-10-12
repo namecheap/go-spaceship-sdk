@@ -70,6 +70,31 @@ jobs:
       - name: Test
         run: make test
 
+  vuln:
+    name: Vulnerability scan (govulncheck)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Pinned like every action in this repo. Pinning does not stale the data:
+      # advisories are fetched from https://vuln.go.dev at run time.
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.7.0
+
+      # Trivy reads go.mod and never evaluates the Go toolchain, so
+      # standard-library advisories are invisible to it. govulncheck reports
+      # only vulnerabilities with a call path into our packages and exits 3
+      # for them, so a failure here is always reachable: fix it by bumping
+      # `toolchain` in go.mod (standard library) or the dependency itself.
+      - name: govulncheck
+        run: govulncheck -mode=source ./...
+
   acceptance:
     name: Acceptance Tests
     needs: [check, lint, test]
