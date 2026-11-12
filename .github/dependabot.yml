@@ -13,6 +13,13 @@ updates:
     commit-message:
       prefix: fix
       include: scope
+    # One PR for all Go bumps, so CI tests the combined dependency set that
+    # main will contain after merge. If one bump breaks the group, add it to
+    # exclude-patterns so the rest can merge, then handle it separately.
+    groups:
+      go-deps:
+        patterns:
+          - "*"
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -22,3 +29,10 @@ updates:
     commit-message:
       prefix: ci
       include: scope
+    # One PR for all action bumps. Required for github/codeql-action: its
+    # init and analyze steps must run the same version, so separate PRs
+    # each fail CodeQL and can never merge.
+    groups:
+      actions:
+        patterns:
+          - "*"
