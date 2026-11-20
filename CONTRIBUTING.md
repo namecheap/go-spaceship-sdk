@@ -54,7 +54,7 @@ export the variables in your shell); `make testacc` loads `.env` automatically. 
 | `SPACESHIP_API_SECRET` | yes | API credential. |
 | `SPACESHIP_TEST_DOMAIN` | DNS tests only | Domain the DNS tests create and delete records on. Without it those tests skip. Use a throwaway domain. |
 | `SPACESHIP_TEST_RECORD_PREFIX` | no | Namespaces created record names (default `goacc`). |
-| `SPACESHIP_BASE_URL` | no | Override the API base URL (default `https://spaceship.dev/api/v1`). |
+| `SPACESHIP_BASE_URL` | no | Override the API base URL (default `https://spaceship.dev/api/v1`). Read by these live tests only; `terraform-provider-spaceship` ignores it and always uses the default. |
 
 ```shell
 make testacc                                            # all live tests
