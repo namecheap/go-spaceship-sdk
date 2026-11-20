@@ -14,8 +14,8 @@ import (
 // SPACESHIP_TEST_RECORD_PREFIX.
 //
 // The optional SPACESHIP_BASE_URL is the exception: only these tests read it.
-// The provider always uses the production endpoint, so a shared .env that sets
-// it sends the two suites to different APIs.
+// The provider fails when it is set, so keep it out of a .env shared with the
+// provider suite.
 //
 // DNS acceptance tests CREATE AND DELETE records on SPACESHIP_TEST_DOMAIN.
 // Point it at a throwaway domain you control.
