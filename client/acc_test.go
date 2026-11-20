@@ -10,8 +10,12 @@ import (
 // real Spaceship API and are skipped unless credentials are set. They mirror
 // the env-var conventions of domains_acc_test.go and the
 // terraform-provider-spaceship acceptance suite, so the same .env works for
-// both: SPACESHIP_API_KEY, SPACESHIP_API_SECRET, optional SPACESHIP_BASE_URL,
-// SPACESHIP_TEST_DOMAIN, SPACESHIP_TEST_RECORD_PREFIX.
+// both: SPACESHIP_API_KEY, SPACESHIP_API_SECRET, SPACESHIP_TEST_DOMAIN,
+// SPACESHIP_TEST_RECORD_PREFIX.
+//
+// The optional SPACESHIP_BASE_URL is the exception: only these tests read it.
+// The provider fails when it is set, so keep it out of a .env shared with the
+// provider suite.
 //
 // DNS acceptance tests CREATE AND DELETE records on SPACESHIP_TEST_DOMAIN.
 // Point it at a throwaway domain you control.
